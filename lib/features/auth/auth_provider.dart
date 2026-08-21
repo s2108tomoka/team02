@@ -62,3 +62,21 @@ Future<void> createProfile({
 }) async {
   await supabase.from('users').insert({'id': userId, 'name': name});
 }
+
+// 保存済みのプロフィール名を取得する。
+Future<String?> fetchProfileName(String userId) async {
+  final row = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', userId)
+      .maybeSingle();
+  return row?['name'] as String?;
+}
+
+// プロフィール名を更新する。
+Future<void> updateProfileName({
+  required String userId,
+  required String name,
+}) async {
+  await supabase.from('users').update({'name': name}).eq('id', userId);
+}

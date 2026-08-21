@@ -113,6 +113,14 @@ class HomeScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('プロフィール'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push('/profile');
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('ログアウト'),
               onTap: () {
