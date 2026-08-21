@@ -505,34 +505,6 @@ class _EmptyMemberCard extends StatelessWidget {
   }
 }
 
-// カードの共通の枠（角丸・16:10・余白）。filled=false は未投稿用の薄い背景。
-class _CardFrame extends StatelessWidget {
-  const _CardFrame({required this.child, this.filled = true});
-
-  final Widget child;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: filled ? Colors.black : const Color(0xFFE9FBF8),
-            border: filled
-                ? null
-                : Border.all(color: const Color(0xFF9FE5E0), width: 1.5),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: AspectRatio(aspectRatio: 16 / 10, child: child),
-        ),
-      ),
-    );
-  }
-}
-
 // カード左上の投稿者名＋アバター。
 class _NameOverlay extends StatelessWidget {
   const _NameOverlay({required this.name, this.dark = true});
@@ -569,8 +541,7 @@ class _NameOverlay extends StatelessWidget {
 // filled=true: 動画カード。常に黒背景（動画の読み込み待ち/エラー時と統一するため
 // テーマに依存させない＝カメラ画面と同じ考え方）。
 // filled=false: 未投稿プレースホルダー。テーマのsurfaceカラーに追従させる。
-class 
-  extends StatelessWidget {
+class _CardFrame extends StatelessWidget {
   const _CardFrame({required this.child, this.filled = true});
 
   final Widget child;
