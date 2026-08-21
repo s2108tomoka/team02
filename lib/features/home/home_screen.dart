@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../core/cached_video.dart';
+import '../../core/animated_flower.dart';
+import '../../core/double_tap_heart.dart';
 import '../../models/group.dart';
 import '../../models/post.dart';
 import '../auth/auth_provider.dart';
@@ -48,6 +50,7 @@ class HomeScreen extends ConsumerWidget {
                         return const _EmptyState(
                           icon: Icons.videocam_off_outlined,
                           message: 'まだVlogがありません',
+                          animatedFlower: true,
                         );
                       }
                       return _VlogFeed(posts: posts);
@@ -233,6 +236,7 @@ class _VlogFeedState extends State<_VlogFeed> {
   bool _initialized = false;
   bool _hasError = false;
   bool _transitioning = false;
+  int _heartSeed = 0;
   int _loadGen = 0;
 
   @override
@@ -352,6 +356,7 @@ class _VlogFeedState extends State<_VlogFeed> {
         borderRadius: BorderRadius.circular(20),
         child: GestureDetector(
           onTap: _togglePlayPause,
+          onDoubleTap: () => setState(() => _heartSeed++),
           child: AspectRatio(
             // ホームでは横長のスリムなカードで表示する（撮影は縦長・横向き）。
             aspectRatio: 16 / 9,
@@ -395,6 +400,14 @@ class _VlogFeedState extends State<_VlogFeed> {
                   const Center(
                     child: Icon(Icons.play_circle_fill,
                         size: 64, color: Colors.white70),
+                  ),
+                if (_heartSeed > 0)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Center(
+                        child: HeartBurst(key: ValueKey(_heartSeed)),
+                      ),
+                    ),
                   ),
                 const Positioned(
                   left: 16,
@@ -579,10 +592,15 @@ class _FloatingBottomBar extends StatelessWidget {
 
 // 一覧が空のときに表示する共通ウィジェット。
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.message});
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    this.animatedFlower = false,
+  });
 
   final IconData icon;
   final String message;
+  final bool animatedFlower;
 
   @override
   Widget build(BuildContext context) {
@@ -590,7 +608,10 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
         children: [
-          Icon(icon, size: 48, color: Colors.grey[400]),
+          if (animatedFlower)
+            const AnimatedFlower(size: 56, width: double.infinity, height: 120)
+          else
+            Icon(icon, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 8),
           Text(message, style: TextStyle(color: Colors.grey[600])),
         ],

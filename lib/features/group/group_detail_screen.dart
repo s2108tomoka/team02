@@ -9,6 +9,8 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/analytics.dart';
 import '../../core/cached_video.dart';
+import '../../core/animated_flower.dart';
+import '../../core/double_tap_heart.dart';
 import '../../core/jst.dart';
 import '../../models/app_user.dart';
 import '../../models/group.dart';
@@ -30,6 +32,8 @@ const _avatarColors = [
 
 Color _colorFor(String key) =>
     _avatarColors[key.hashCode.abs() % _avatarColors.length];
+
+double _flowerPhase(String key) => (key.hashCode.abs() % 100) / 100;
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -253,6 +257,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Theme.of(context).colorScheme.error,
                       side: BorderSide(color: Theme.of(context).colorScheme.error),
+
                     ),
                     icon: const Icon(Icons.exit_to_app),
                     label: const Text('グループを脱退する'),
@@ -296,7 +301,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     try {
       await ref.read(groupServiceProvider).leaveGroup(widget.groupId);
       ref.invalidate(myGroupsProvider);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('グループから脱退しました')),
@@ -362,6 +367,7 @@ class _MemberPostCardState extends State<_MemberPostCard> {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _failed = false;
+  int _heartSeed = 0;
 
   @override
   void initState() {
@@ -401,37 +407,46 @@ class _MemberPostCardState extends State<_MemberPostCard> {
   Widget build(BuildContext context) {
     final controller = _controller;
     // タップは時間移動に使うため、カード自体ではタップを受けない（自動再生・ループ）。
-    return _CardFrame(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_failed)
-            const ColoredBox(
-              color: Colors.black87,
-              child: Center(
-                child: Icon(
-                  Icons.error_outline,
-                  color: Colors.white54,
-                  size: 40,
+    return GestureDetector(
+      onDoubleTap: () => setState(() => _heartSeed++),
+      child: _CardFrame(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_failed)
+              const ColoredBox(
+                color: Colors.black87,
+                child: Center(
+                  child: Icon(
+                    Icons.error_outline,
+                    color: Colors.white54,
+                    size: 40,
+                  ),
+                ),
+              )
+            else if (_initialized && controller != null)
+              RecordedVideoView(
+                controller: controller,
+                needsFlip: widget.post.needsFlip,
+                recordedPlatform: widget.post.platform,
+              )
+            else
+              const ColoredBox(
+                color: Colors.black87,
+                child: Center(
+                  child: CircularProgressIndicator(color: Colors.white),
                 ),
               ),
-            )
-          else if (_initialized && controller != null)
-            RecordedVideoView(
-              controller: controller,
-              needsFlip: widget.post.needsFlip,
-              recordedPlatform: widget.post.platform,
-            )
-          else
-            const ColoredBox(
-              color: Colors.black87,
-              child: Center(
-                child: CircularProgressIndicator(color: Colors.white),
+            _NameOverlay(name: widget.post.userName),
+            _TimeOverlay(label: widget.slotLabel),
+            if (_heartSeed > 0)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(child: HeartBurst(key: ValueKey(_heartSeed))),
+                ),
               ),
-            ),
-          _NameOverlay(name: widget.post.userName),
-          _TimeOverlay(label: widget.slotLabel),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -452,7 +467,20 @@ class _EmptyMemberCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          Positioned(
+            top: 34,
+            left: 0,
+            right: 0,
+            height: 76,
+            child: AnimatedFlower(
+              size: 52,
+              width: double.infinity,
+              height: 76,
+              phase: _flowerPhase(member.id),
+            ),
+          ),
           Center(
+
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -476,6 +504,35 @@ class _EmptyMemberCard extends StatelessWidget {
     );
   }
 }
+
+// カードの共通の枠（角丸・16:10・余白）。filled=false は未投稿用の薄い背景。
+class _CardFrame extends StatelessWidget {
+  const _CardFrame({required this.child, this.filled = true});
+
+  final Widget child;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: filled ? Colors.black : const Color(0xFFE9FBF8),
+            border: filled
+                ? null
+                : Border.all(color: const Color(0xFF9FE5E0), width: 1.5),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: AspectRatio(aspectRatio: 16 / 10, child: child),
+        ),
+      ),
+    );
+  }
+}
+
 // カード左上の投稿者名＋アバター。
 class _NameOverlay extends StatelessWidget {
   const _NameOverlay({required this.name, this.dark = true});
@@ -512,7 +569,8 @@ class _NameOverlay extends StatelessWidget {
 // filled=true: 動画カード。常に黒背景（動画の読み込み待ち/エラー時と統一するため
 // テーマに依存させない＝カメラ画面と同じ考え方）。
 // filled=false: 未投稿プレースホルダー。テーマのsurfaceカラーに追従させる。
-class _CardFrame extends StatelessWidget {
+class 
+  extends StatelessWidget {
   const _CardFrame({required this.child, this.filled = true});
 
   final Widget child;
