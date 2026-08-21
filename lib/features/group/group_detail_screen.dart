@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 import '../../core/analytics.dart';
 import '../../core/cached_video.dart';
 import '../../core/animated_flower.dart';
+import '../../core/double_tap_heart.dart';
 import '../../core/jst.dart';
 import '../../models/app_user.dart';
 import '../../models/group.dart';
@@ -299,7 +300,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     try {
       await ref.read(groupServiceProvider).leaveGroup(widget.groupId);
       ref.invalidate(myGroupsProvider);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('グループから脱退しました')),
@@ -365,6 +366,7 @@ class _MemberPostCardState extends State<_MemberPostCard> {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _failed = false;
+  int _heartSeed = 0;
 
   @override
   void initState() {
@@ -404,37 +406,46 @@ class _MemberPostCardState extends State<_MemberPostCard> {
   Widget build(BuildContext context) {
     final controller = _controller;
     // タップは時間移動に使うため、カード自体ではタップを受けない（自動再生・ループ）。
-    return _CardFrame(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_failed)
-            const ColoredBox(
-              color: Colors.black87,
-              child: Center(
-                child: Icon(
-                  Icons.error_outline,
-                  color: Colors.white54,
-                  size: 40,
+    return GestureDetector(
+      onDoubleTap: () => setState(() => _heartSeed++),
+      child: _CardFrame(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_failed)
+              const ColoredBox(
+                color: Colors.black87,
+                child: Center(
+                  child: Icon(
+                    Icons.error_outline,
+                    color: Colors.white54,
+                    size: 40,
+                  ),
+                ),
+              )
+            else if (_initialized && controller != null)
+              RecordedVideoView(
+                controller: controller,
+                needsFlip: widget.post.needsFlip,
+                recordedPlatform: widget.post.platform,
+              )
+            else
+              const ColoredBox(
+                color: Colors.black87,
+                child: Center(
+                  child: CircularProgressIndicator(color: Colors.white),
                 ),
               ),
-            )
-          else if (_initialized && controller != null)
-            RecordedVideoView(
-              controller: controller,
-              needsFlip: widget.post.needsFlip,
-              recordedPlatform: widget.post.platform,
-            )
-          else
-            const ColoredBox(
-              color: Colors.black87,
-              child: Center(
-                child: CircularProgressIndicator(color: Colors.white),
+            _NameOverlay(name: widget.post.userName),
+            _TimeOverlay(label: widget.slotLabel),
+            if (_heartSeed > 0)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Center(child: HeartBurst(key: ValueKey(_heartSeed))),
+                ),
               ),
-            ),
-          _NameOverlay(name: widget.post.userName),
-          _TimeOverlay(label: widget.slotLabel),
-        ],
+          ],
+        ),
       ),
     );
   }

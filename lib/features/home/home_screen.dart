@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/cached_video.dart';
 import '../../core/animated_flower.dart';
+import '../../core/double_tap_heart.dart';
 import '../../models/group.dart';
 import '../../models/post.dart';
 import '../auth/auth_provider.dart';
@@ -235,6 +236,7 @@ class _VlogFeedState extends State<_VlogFeed> {
   bool _initialized = false;
   bool _hasError = false;
   bool _transitioning = false;
+  int _heartSeed = 0;
   int _loadGen = 0;
 
   @override
@@ -354,6 +356,7 @@ class _VlogFeedState extends State<_VlogFeed> {
         borderRadius: BorderRadius.circular(20),
         child: GestureDetector(
           onTap: _togglePlayPause,
+          onDoubleTap: () => setState(() => _heartSeed++),
           child: AspectRatio(
             // ホームでは横長のスリムなカードで表示する（撮影は縦長・横向き）。
             aspectRatio: 16 / 9,
@@ -397,6 +400,14 @@ class _VlogFeedState extends State<_VlogFeed> {
                   const Center(
                     child: Icon(Icons.play_circle_fill,
                         size: 64, color: Colors.white70),
+                  ),
+                if (_heartSeed > 0)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Center(
+                        child: HeartBurst(key: ValueKey(_heartSeed)),
+                      ),
+                    ),
                   ),
                 const Positioned(
                   left: 16,
