@@ -166,6 +166,8 @@ create policy "post_shares_insert_owner" on public.post_shares
       where p.id = post_id and p.user_id = auth.uid()
     )
   );
+create policy "post_shares_delete_owner" on public.post_shares
+  for delete using (auth.uid() = user_id);
 
 -- ============================================================
 -- アナリティクス

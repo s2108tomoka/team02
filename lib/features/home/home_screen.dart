@@ -13,6 +13,7 @@ import '../../models/group.dart';
 import '../../models/post.dart';
 import '../auth/auth_provider.dart';
 import '../post/recorded_video_view.dart';
+import '../post/post_provider.dart';
 import 'home_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -53,7 +54,11 @@ class HomeScreen extends ConsumerWidget {
                           animatedFlower: true,
                         );
                       }
-                      return _VlogFeed(posts: posts);
+                      return _VlogFeed(
+                        posts: posts,
+                        onDelete: (post) =>
+                            _confirmDeletePost(context, ref, post),
+                      );
                     },
                     loading: () => const _LoadingIndicator(),
                     error: (e, _) =>
@@ -158,6 +163,45 @@ class HomeScreen extends ConsumerWidget {
     await ref.read(authControllerProvider.notifier).signOut();
     if (context.mounted) context.go('/login');
   }
+
+  Future<void> _confirmDeletePost(
+    BuildContext context,
+    WidgetRef ref,
+    Post post,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('この投稿を削除しますか？'),
+        content: const Text('削除した投稿は元に戻せません。共有したグループからも消えます。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true || !context.mounted) return;
+
+    try {
+      await ref.read(postControllerProvider).deletePost(post);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('投稿を削除しました')));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('投稿の削除に失敗しました: $e')));
+    }
+  }
 }
 
 // ブランドヘッダー。「HANALOG」ロゴと丸型アクションボタンを配置する。
@@ -174,16 +218,29 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              'HANALOG',
-              overflow: TextOverflow.clip,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                fontStyle: FontStyle.italic,
-                color: Color(0xFF2ECDB0),
-                letterSpacing: 1,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'HANALOG',
+                  overflow: TextOverflow.clip,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    fontStyle: FontStyle.italic,
+                    color: Color(0xFF2ECDB0),
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Image.asset(
+                  'assets/images/hanalog_hibiscus_icon.png',
+                  width: 34,
+                  height: 34,
+                  fit: BoxFit.contain,
+                ),
+              ],
             ),
           ),
           _CircleIconButton(icon: Icons.add, onTap: onAddGroup),
@@ -222,9 +279,10 @@ class _CircleIconButton extends StatelessWidget {
 // Vlogを自動再生し、終了したら次の動画へ進むフィード。
 // 1件ならループ再生、複数件なら順番に再生する。
 class _VlogFeed extends StatefulWidget {
-  const _VlogFeed({required this.posts});
+  const _VlogFeed({required this.posts, required this.onDelete});
 
   final List<Post> posts;
+  final Future<void> Function(Post post) onDelete;
 
   @override
   State<_VlogFeed> createState() => _VlogFeedState();
@@ -410,6 +468,21 @@ class _VlogFeedState extends State<_VlogFeed> {
                       ),
                     ),
                   ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Material(
+                    color: Colors.black45,
+                    shape: const CircleBorder(),
+                    child: IconButton(
+                      tooltip: '投稿を削除',
+                      icon: const Icon(Icons.delete_outline),
+                      color: Colors.white,
+                      onPressed: () =>
+                          widget.onDelete(widget.posts[_currentIndex]),
+                    ),
+                  ),
+                ),
                 const Positioned(
                   left: 16,
                   bottom: 24,

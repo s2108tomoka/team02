@@ -12,6 +12,7 @@ import '../../core/cached_video.dart';
 import '../../core/animated_flower.dart';
 import '../../core/double_tap_heart.dart';
 import '../../core/jst.dart';
+import '../../core/supabase_client.dart';
 import '../../models/app_user.dart';
 import '../../models/group.dart';
 import '../home/home_provider.dart';
@@ -140,6 +141,49 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     }
   }
 
+  Future<void> _deletePostFromGroup(GroupPost post) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('このグループから投稿を削除しますか？'),
+        content: const Text('自分のホームや他のグループの投稿は残ります。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('このグループから削除'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true || !mounted) return;
+
+    try {
+      await ref
+          .read(groupServiceProvider)
+          .deletePostShare(groupId: widget.groupId, postId: post.postId);
+      final args = GroupPostsArgs(
+        groupId: widget.groupId,
+        date: _date,
+        hour: _hour,
+      );
+      ref.invalidate(groupPostsProvider(args));
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('このグループから投稿を削除しました')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('投稿の削除に失敗しました: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final groupAsync = ref.watch(groupProvider(widget.groupId));
@@ -193,6 +237,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                         membersAsync,
                         postsAsync,
                         onCardPointerDown: _markCardPointerDown,
+                        onDeletePost: _deletePostFromGroup,
                       ),
                     ),
                   ),
@@ -210,6 +255,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     AsyncValue<List<AppUser>> membersAsync,
     AsyncValue<List<GroupPost>> postsAsync, {
     required VoidCallback onCardPointerDown,
+    required Future<void> Function(GroupPost post) onDeletePost,
   }) {
     if (membersAsync.isLoading || postsAsync.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -238,6 +284,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
             post: post,
             slotLabel: _slotLabel,
             onPointerDown: onCardPointerDown,
+            onDelete: post.userId == supabase.auth.currentUser?.id
+                ? () => onDeletePost(post)
+                : null,
           ),
         for (final member in members)
           if (!postedUserIds.contains(member.id))
@@ -392,11 +441,13 @@ class _MemberPostCard extends StatefulWidget {
     required this.post,
     required this.slotLabel,
     required this.onPointerDown,
+    this.onDelete,
   });
 
   final GroupPost post;
   final String slotLabel;
   final VoidCallback onPointerDown;
+  final VoidCallback? onDelete;
 
   @override
   State<_MemberPostCard> createState() => _MemberPostCardState();
@@ -480,6 +531,21 @@ class _MemberPostCardState extends State<_MemberPostCard> {
               ),
             _NameOverlay(name: widget.post.userName),
             _TimeOverlay(label: widget.slotLabel),
+            if (widget.onDelete != null)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: Colors.black45,
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    tooltip: 'このグループから削除',
+                    icon: const Icon(Icons.delete_outline),
+                    color: Colors.white,
+                    onPressed: widget.onDelete,
+                  ),
+                ),
+              ),
             if (_heartSeed > 0)
               Positioned.fill(
                 child: IgnorePointer(
@@ -578,6 +644,7 @@ class _NameOverlay extends StatelessWidget {
     );
   }
 }
+
 // カードの共通の枠（角丸・16:10・余白）。
 // filled=true: 動画カード。常に黒背景（動画の読み込み待ち/エラー時と統一するため
 // テーマに依存させない＝カメラ画面と同じ考え方）。

@@ -13,8 +13,10 @@ import '../../core/jst.dart';
 import '../../core/supabase_client.dart';
 import '../../core/video_processor.dart';
 import '../../models/group.dart';
+import '../../models/post.dart';
 import '../../models/sticker_overlay.dart';
 import '../../models/video_filter.dart';
+import '../home/home_provider.dart';
 
 // 撮影直後の動画。ファイルと向き補正フラグ(needsFlip)を送信画面へ受け渡す。
 class RecordedVideo {
@@ -98,6 +100,42 @@ class PostController {
   PostController(this._ref);
 
   final Ref _ref;
+
+  // 自分の投稿を削除する。postsの外部キー設定により共有先も連動して削除される。
+  Future<void> deletePost(Post post) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw StateError('ログインが必要です');
+    if (post.userId != userId) throw StateError('自分の投稿だけ削除できます');
+
+    debugPrint('[post] 削除開始 postId=${post.id}');
+    await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id)
+        .eq('user_id', userId);
+
+    // DB削除を優先し、Storageの動画は取得できたパスだけ後から削除する。
+    // 古いURL形式などでパスを取り出せない場合も、投稿自体は削除できる。
+    final storagePath = _storagePathFromPublicUrl(post.videoUrl);
+    if (storagePath != null) {
+      try {
+        await supabase.storage.from('videos').remove([storagePath]);
+      } catch (e) {
+        debugPrint('[post] ⚠️ 動画ファイル削除失敗（投稿は削除済み）: $e');
+      }
+    }
+    _ref.invalidate(myPostsProvider);
+    debugPrint('[post] ✅ 削除完了 postId=${post.id}');
+  }
+
+  String? _storagePathFromPublicUrl(String videoUrl) {
+    final path = Uri.tryParse(videoUrl)?.path;
+    if (path == null) return null;
+    const marker = '/storage/v1/object/public/videos/';
+    final start = path.indexOf(marker);
+    if (start < 0) return null;
+    return Uri.decodeComponent(path.substring(start + marker.length));
+  }
 
   // 動画を videos バケットへアップロードし、posts と post_shares を作成する。
   // postsは常に作成され「自分のログ」に表示される。
