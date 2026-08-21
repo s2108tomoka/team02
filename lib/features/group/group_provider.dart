@@ -157,6 +157,21 @@ class GroupService {
         .eq('user_id', userId);
   }
 
+  // 自分の投稿を、このグループとの共有からだけ外す。
+  // posts本体や動画ファイルは削除しないため、他のグループやホームには残る。
+  Future<void> deletePostShare({
+    required String groupId,
+    required String postId,
+  }) async {
+    final userId = _currentUserId;
+    await supabase
+        .from('post_shares')
+        .delete()
+        .eq('post_id', postId)
+        .eq('group_id', groupId)
+        .eq('user_id', userId);
+  }
+
   Future<Group> fetchGroup(String groupId) async {
     final json =
         await supabase.from('groups').select().eq('id', groupId).maybeSingle();
