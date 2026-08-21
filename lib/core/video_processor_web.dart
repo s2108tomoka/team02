@@ -9,17 +9,20 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 
 import '../models/sticker_overlay.dart';
+import '../models/video_filter.dart';
 
 @JS('processVideoWeb')
 external JSPromise<JSUint8Array> _processVideoWeb(
   JSUint8Array input,
   JSString stickersJson,
+  JSString filterName,
 );
 
 Future<ProcessedVideo> processVideo(
   XFile input, {
   List<StickerOverlay> stickers = const [],
   bool needsFlip = false,
+  VideoFilter filter = VideoFilter.none,
 }) async {
   final inputBytes = await input.readAsBytes();
 
@@ -47,6 +50,7 @@ Future<ProcessedVideo> processVideo(
     final result = await _processVideoWeb(
       inputBytes.toJS,
       stickersJson.toJS,
+      filter.name.toJS,
     ).toDart;
     final bytes = result.toDart;
     // ignore: avoid_print

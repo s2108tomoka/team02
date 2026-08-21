@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/navigation.dart';
+import '../../core/video_filter_overlay.dart';
+import '../../models/video_filter.dart';
 import 'camera_web_api.dart';
 import 'post_provider.dart';
 
@@ -36,6 +38,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
   // 録画は2秒で自動停止する（Hanalog風の短尺ログ）。
   static const _recordDuration = Duration(seconds: 2);
   Timer? _recordTimer;
+  VideoFilter _selectedFilter = VideoFilter.none;
 
   @override
   void initState() {
@@ -296,8 +299,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
       ref.read(retakeCountProvider.notifier).increment();
       ref
           .read(recordedVideoProvider.notifier)
-          .set(RecordedVideo(file: file, needsFlip: _needsFlip));
-      debugPrint('[camera] 送信画面へ遷移 needsFlip=$_needsFlip');
+          .set(
+            RecordedVideo(
+              file: file,
+              needsFlip: _needsFlip,
+              filter: _selectedFilter,
+            ),
+          );
+      debugPrint(
+        '[camera] 送信画面へ遷移 needsFlip=$_needsFlip filter=${_selectedFilter.name}',
+      );
       if (mounted) context.push('/send');
     } catch (e, st) {
       debugPrint('[camera] ❌ 録画停止失敗: $e');
@@ -329,7 +340,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
     return Stack(
       children: [
-        Positioned.fill(child: _buildPreview(controller)),
+        Positioned.fill(
+          child: withVideoFilter(_buildPreview(controller), _selectedFilter),
+        ),
         // 撮影中・待機中は中央に横向きで現在時刻を表示する。
         // カウントダウン中は数字と被るため時刻は隠す。
         if (_countdown == 0)
@@ -430,6 +443,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
             enabled: !_isRecording && _countdown == 0,
             onTap: _cycleTimer,
           ),
+          IconButton(
+            tooltip: 'フィルター: ${_selectedFilter.label}',
+            iconSize: 30,
+            color: Colors.white,
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: _isRecording ? null : _showFilterSheet,
+          ),
           GestureDetector(
             onTap: _countdown > 0 ? null : _onShutterPressed,
             child: Container(
@@ -464,6 +484,46 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     const options = [0, 3, 5, 10];
     final next = options[(options.indexOf(_timerSeconds) + 1) % options.length];
     setState(() => _timerSeconds = next);
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'フィルター',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final filter in VideoFilter.values)
+                    ChoiceChip(
+                      label: Text(filter.label),
+                      selected: filter == _selectedFilter,
+                      avatar: filter == VideoFilter.none
+                          ? null
+                          : CircleAvatar(backgroundColor: filter.previewColor),
+                      onSelected: (_) {
+                        setState(() => _selectedFilter = filter);
+                        Navigator.of(sheetContext).pop();
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
