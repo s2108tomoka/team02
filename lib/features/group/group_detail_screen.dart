@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/analytics.dart';
 import '../../core/cached_video.dart';
+import '../../core/animated_flower.dart';
 import '../../core/jst.dart';
 import '../../models/app_user.dart';
 import '../../models/group.dart';
@@ -28,6 +29,8 @@ const _avatarColors = [
 
 Color _colorFor(String key) =>
     _avatarColors[key.hashCode.abs() % _avatarColors.length];
+
+double _flowerPhase(String key) => (key.hashCode.abs() % 100) / 100;
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -391,14 +394,28 @@ class _EmptyMemberCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          Positioned(
+            top: 34,
+            left: 0,
+            right: 0,
+            height: 76,
+            child: AnimatedFlower(
+              size: 52,
+              width: double.infinity,
+              height: 76,
+              phase: _flowerPhase(member.id),
+            ),
+          ),
           Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.hourglass_empty, size: 32, color: Colors.grey[400]),
-                const SizedBox(height: 8),
-                Text('まだ投稿していません', style: TextStyle(color: Colors.grey[500])),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(top: 72),
+              child: Text(
+                'まだ投稿していません',
+                style: TextStyle(
+                  color: const Color(0xFF527878),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
           _NameOverlay(name: member.name, dark: false),
@@ -424,10 +441,10 @@ class _CardFrame extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Container(
           decoration: BoxDecoration(
-            color: filled ? Colors.black : Colors.grey[200],
+            color: filled ? Colors.black : const Color(0xFFE9FBF8),
             border: filled
                 ? null
-                : Border.all(color: Colors.grey.shade300, width: 1.5),
+                : Border.all(color: const Color(0xFF9FE5E0), width: 1.5),
             borderRadius: BorderRadius.circular(20),
           ),
           child: AspectRatio(aspectRatio: 16 / 10, child: child),
