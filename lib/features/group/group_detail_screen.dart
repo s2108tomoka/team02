@@ -48,6 +48,9 @@ class GroupDetailScreen extends ConsumerStatefulWidget {
 class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   late DateTime _date;
   late int _hour;
+  Offset? _navigationPointerDown;
+  DateTime? _navigationPointerDownAt;
+  bool _pointerStartedOnCard = false;
 
   @override
   void initState() {
@@ -95,6 +98,48 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     return _hour < 23;
   }
 
+  void _onNavigationPointerDown(PointerDownEvent event) {
+    _navigationPointerDown = event.localPosition;
+    _navigationPointerDownAt = DateTime.now();
+    _pointerStartedOnCard = false;
+  }
+
+  void _markCardPointerDown() {
+    _pointerStartedOnCard = true;
+  }
+
+  void _onNavigationPointerUp(PointerUpEvent event, double width) {
+    final start = _navigationPointerDown;
+    final startedAt = _navigationPointerDownAt;
+    _navigationPointerDown = null;
+    _navigationPointerDownAt = null;
+    if (start == null || startedAt == null) return;
+
+    final delta = event.localPosition - start;
+    final isHorizontalSwipe =
+        delta.dx.abs() > 40 && delta.dx.abs() > delta.dy.abs();
+    if (isHorizontalSwipe) {
+      if (delta.dx < 0) {
+        if (_canGoForwardDate) _changeDate(1);
+      } else {
+        _changeDate(-1);
+      }
+      return;
+    }
+
+    // カード上の短いタップはカードのダブルタップ演出に任せる。
+    if (_pointerStartedOnCard) return;
+    if (DateTime.now().difference(startedAt) >
+        const Duration(milliseconds: 350)) {
+      return;
+    }
+    if (event.localPosition.dx < width / 2) {
+      if (_hour > 0) _changeHour(-1);
+    } else if (_canGoForwardHour) {
+      _changeHour(1);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final groupAsync = ref.watch(groupProvider(widget.groupId));
@@ -135,30 +180,20 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return GestureDetector(
+                return Listener(
                   behavior: HitTestBehavior.opaque,
-                  // 左半分タップ→前の時間 / 右半分タップ→次の時間（未来は不可）。
-                  onTapUp: (details) {
-                    if (details.localPosition.dx < constraints.maxWidth / 2) {
-                      if (_hour > 0) _changeHour(-1);
-                    } else if (_canGoForwardHour) {
-                      _changeHour(1);
-                    }
-                  },
-                  // 昨日が左・翌日が右のイメージ。右スワイプ→前日 / 左スワイプ→翌日。
-                  onHorizontalDragEnd: (details) {
-                    final v = details.primaryVelocity ?? 0;
-                    if (v < 0) {
-                      if (_canGoForwardDate) _changeDate(1);
-                    } else if (v > 0) {
-                      _changeDate(-1);
-                    }
-                  },
+                  onPointerDown: _onNavigationPointerDown,
+                  onPointerUp: (event) =>
+                      _onNavigationPointerUp(event, constraints.maxWidth),
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 250),
                     child: KeyedSubtree(
                       key: ValueKey('${_date.toIso8601String()}-$_hour'),
-                      child: _buildContent(membersAsync, postsAsync),
+                      child: _buildContent(
+                        membersAsync,
+                        postsAsync,
+                        onCardPointerDown: _markCardPointerDown,
+                      ),
                     ),
                   ),
                 );
@@ -173,8 +208,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   // メンバーと投稿の両方が揃ったら、メンバー全員分のカードを表示する。
   Widget _buildContent(
     AsyncValue<List<AppUser>> membersAsync,
-    AsyncValue<List<GroupPost>> postsAsync,
-  ) {
+    AsyncValue<List<GroupPost>> postsAsync, {
+    required VoidCallback onCardPointerDown,
+  }) {
     if (membersAsync.isLoading || postsAsync.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -201,6 +237,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
             key: ValueKey(post.postId),
             post: post,
             slotLabel: _slotLabel,
+            onPointerDown: onCardPointerDown,
           ),
         for (final member in members)
           if (!postedUserIds.contains(member.id))
@@ -354,10 +391,12 @@ class _MemberPostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.slotLabel,
+    required this.onPointerDown,
   });
 
   final GroupPost post;
   final String slotLabel;
+  final VoidCallback onPointerDown;
 
   @override
   State<_MemberPostCard> createState() => _MemberPostCardState();
@@ -406,8 +445,10 @@ class _MemberPostCardState extends State<_MemberPostCard> {
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
-    // タップは時間移動に使うため、カード自体ではタップを受けない（自動再生・ループ）。
+    // カード内は時間移動よりダブルタップのハート演出を優先する。
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => widget.onPointerDown(),
       onDoubleTap: () => setState(() => _heartSeed++),
       child: _CardFrame(
         child: Stack(

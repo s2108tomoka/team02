@@ -8,8 +8,10 @@ import 'package:video_player/video_player.dart';
 
 import '../../core/app_platform.dart';
 import '../../core/navigation.dart';
+import '../../core/video_filter_overlay.dart';
 import '../../models/group.dart';
 import '../../models/sticker_overlay.dart';
+import '../../models/video_filter.dart';
 import 'post_provider.dart';
 import 'recorded_video_view.dart';
 import 'video_preview_factory.dart';
@@ -104,6 +106,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
             groupIds: _selectedGroupIds.toList(),
             needsFlip: video.needsFlip,
             stickers: _stickers,
+            filter: video.filter,
           );
       debugPrint('[send] ✅ 送信完了 → /home へ遷移');
       if (mounted) context.go('/home');
@@ -179,6 +182,7 @@ class _SendScreenState extends ConsumerState<SendScreen> {
   Widget _buildPreview() {
     final controller = _videoController;
     final needsFlip = ref.watch(recordedVideoProvider)?.needsFlip ?? false;
+    final filter = ref.watch(recordedVideoProvider)?.filter ?? VideoFilter.none;
     return Column(
       children: [
         Container(
@@ -192,10 +196,13 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        RecordedVideoView(
-                          controller: controller,
-                          needsFlip: needsFlip,
-                          recordedPlatform: currentPlatform,
+                        withVideoFilter(
+                          RecordedVideoView(
+                            controller: controller,
+                            needsFlip: needsFlip,
+                            recordedPlatform: currentPlatform,
+                          ),
+                          filter,
                         ),
                         _buildStickerLayer(),
                       ],

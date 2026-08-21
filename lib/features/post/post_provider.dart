@@ -14,14 +14,20 @@ import '../../core/supabase_client.dart';
 import '../../core/video_processor.dart';
 import '../../models/group.dart';
 import '../../models/sticker_overlay.dart';
+import '../../models/video_filter.dart';
 
 // 撮影直後の動画。ファイルと向き補正フラグ(needsFlip)を送信画面へ受け渡す。
 class RecordedVideo {
-  const RecordedVideo({required this.file, this.needsFlip = false});
+  const RecordedVideo({
+    required this.file,
+    this.needsFlip = false,
+    this.filter = VideoFilter.none,
+  });
 
   final XFile file;
   // ファイル自体が上下逆に記録された動画(Android前面カメラ等)の補正フラグ。
   final bool needsFlip;
+  final VideoFilter filter;
 }
 
 // 撮影直後の動画を送信画面へ受け渡すための保持先。
@@ -101,12 +107,14 @@ class PostController {
     required List<String> groupIds,
     bool needsFlip = false,
     List<StickerOverlay> stickers = const [],
+    VideoFilter filter = VideoFilter.none,
   }) async {
     debugPrint(
       '[post] send() 開始 '
       'groupIds=${groupIds.length}件 '
       'stickers=${stickers.length}件 '
-      'needsFlip=$needsFlip',
+      'needsFlip=$needsFlip '
+      'filter=${filter.name}',
     );
 
     final userId = supabase.auth.currentUser?.id;
@@ -124,6 +132,7 @@ class PostController {
       video,
       stickers: stickers,
       needsFlip: needsFlip,
+      filter: filter,
     );
     debugPrint(
       '[post] 動画処理完了 '

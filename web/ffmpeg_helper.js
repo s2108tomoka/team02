@@ -101,10 +101,17 @@ async function _renderEmojiToPng(emoji, size) {
 
 // 入力動画のバイト列とステッカーJSONを受け取り、720x1280縦型mp4のバイト列を返す。
 // stickersJson: [{emoji, col, row}] の配列。col/rowはffmpegのoverlay座標(ピクセル)。
-async function processVideoWeb(inputBytes, stickersJson) {
+async function processVideoWeb(inputBytes, stickersJson, filterName) {
   const t0 = performance.now();
   const stickers = JSON.parse(stickersJson || '[]');
-  _log(`変換開始: 入力 ${inputBytes.length} bytes, ステッカー ${stickers.length} 件`);
+  const filterExpressions = {
+    none: '',
+    warm: 'colorchannelmixer=rr=1.08:gg=1.02:bb=0.90',
+    blue: 'colorchannelmixer=rr=0.88:gg=1.02:bb=1.16',
+    pink: 'colorchannelmixer=rr=1.12:gg=0.90:bb=1.04',
+  };
+  const tone = filterExpressions[filterName] || '';
+  _log(`変換開始: 入力 ${inputBytes.length} bytes, ステッカー ${stickers.length} 件, フィルター ${filterName || 'none'}`);
 
   try {
     const ffmpeg = await _ensureLoaded();
@@ -129,6 +136,7 @@ async function processVideoWeb(inputBytes, stickersJson) {
     const resize =
       'scale=720:1280:force_original_aspect_ratio=increase,' +
       'crop=720:1280';
+    const baseVideoFilter = tone ? `${resize},${tone}` : resize;
 
     // コマンド引数を配列で組み立てる（特殊文字を安全に扱うため）
     const args = ['-y', '-i', inputName];
@@ -137,10 +145,10 @@ async function processVideoWeb(inputBytes, stickersJson) {
     }
 
     if (stickerEntries.length === 0) {
-      args.push('-vf', resize);
+      args.push('-vf', baseVideoFilter);
     } else {
       // filter_complex: リサイズ後に各ステッカーを順番にoverlay
-      let filter = `[0:v]${resize}[base];`;
+      let filter = `[0:v]${baseVideoFilter}[base];`;
       for (let i = 0; i < stickerEntries.length; i++) {
         const { col, row } = stickerEntries[i];
         const src = i === 0 ? '[base]' : `[v${i}]`;

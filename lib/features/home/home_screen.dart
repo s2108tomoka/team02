@@ -355,6 +355,7 @@ class _VlogFeedState extends State<_VlogFeed> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: _togglePlayPause,
           onDoubleTap: () => setState(() => _heartSeed++),
           child: AspectRatio(
