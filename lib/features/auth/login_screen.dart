@@ -16,6 +16,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  // ライト/ダーク共通の色（入力欄・ボタン・リンクはモードを問わず視認性が高いため固定）。
   static const _navy = Color(0xFF17213C);
   static const _yellow = Color(0xFFFFD21F);
   static const _yellowLight = Color(0xFFFFFBE3);
@@ -72,6 +73,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
+    final palette = _LoginPalette.of(context);
 
     ref.listen(authControllerProvider, (prev, next) {
       if (next.hasError) {
@@ -83,16 +85,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF7DD8FF), Color(0xFFDDF9FF), Color(0xFF73DCCB)],
+            colors: palette.bgGradient,
           ),
         ),
         child: Stack(
           children: [
-            const Positioned.fill(child: _TropicalBackground()),
+            Positioned.fill(child: _TropicalBackground(palette: palette)),
             const Positioned(
               top: 42,
               right: 24,
@@ -122,14 +124,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Container(
                       padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: palette.cardColor,
                         borderRadius: BorderRadius.circular(32),
-                        border: Border.all(color: const Color(0xFFFF8A8A)),
-                        boxShadow: const [
+                        border: Border.all(color: palette.cardBorder),
+                        boxShadow: [
                           BoxShadow(
-                            color: Color(0x22000000),
+                            color: palette.cardShadow,
                             blurRadius: 24,
-                            offset: Offset(0, 12),
+                            offset: const Offset(0, 12),
                           ),
                         ],
                       ),
@@ -138,11 +140,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const _LoginHeader(),
+                            _LoginHeader(palette: palette),
                             const SizedBox(height: 28),
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
+                              style: const TextStyle(color: _navy),
                               decoration: _inputDecoration(
                                 labelText: 'メールアドレス',
                                 icon: Icons.mail_outline_rounded,
@@ -154,6 +157,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _passwordController,
+                              style: const TextStyle(color: _navy),
                               obscureText: _obscurePassword,
                               decoration: _inputDecoration(
                                 labelText: 'パスワード',
@@ -164,6 +168,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     _obscurePassword
                                         ? Icons.visibility_off
                                         : Icons.visibility,
+                                    color: _navy,
+   
                                   ),
                                   tooltip: _obscurePassword ? '表示' : '非表示',
                                   onPressed: () => setState(
@@ -181,6 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               TextFormField(
                                 controller: _confirmController,
                                 obscureText: _obscurePassword,
+                                style: const TextStyle(color: _navy),
                                 decoration: _inputDecoration(
                                   labelText: 'パスワード（確認）',
                                   icon: Icons.lock_reset_rounded,
@@ -255,6 +262,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  // 入力欄は常に明るい黄色チップ（ライト/ダーク共通）。カード自体が暗くなっても
+  // フォーム部分の可読性を優先する。
   InputDecoration _inputDecoration({
     required String labelText,
     required IconData icon,
@@ -264,6 +273,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return InputDecoration(
       labelText: labelText,
       helperText: helperText,
+      labelStyle: const TextStyle(color: _navy),
+      helperStyle: const TextStyle(color: _navy),
       prefixIcon: Icon(icon, color: _navy),
       suffixIcon: suffixIcon,
       filled: true,
@@ -285,9 +296,71 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
+// ライト/ダークそれぞれの装飾カラーセット。
+// 入力欄・ボタン・リンクは共通で使えるため対象外（State側の定数を使用）。
+class _LoginPalette {
+  const _LoginPalette({
+    required this.bgGradient,
+    required this.cardColor,
+    required this.cardBorder,
+    required this.cardShadow,
+    required this.headerTitleColor,
+    required this.headerSubtitleColor,
+    required this.sunColor,
+    required this.cloudColor,
+    required this.waveColor,
+    required this.aquaWaveColor,
+  });
+
+  final List<Color> bgGradient;
+  final Color cardColor;
+  final Color cardBorder;
+  final Color cardShadow;
+  final Color headerTitleColor;
+  final Color headerSubtitleColor;
+  final Color sunColor;
+  final Color cloudColor;
+  final Color waveColor;
+  final Color aquaWaveColor;
+
+  static const light = _LoginPalette(
+    bgGradient: [Color(0xFF7DD8FF), Color(0xFFDDF9FF), Color(0xFF73DCCB)],
+    cardColor: Colors.white,
+    cardBorder: Color(0xFFFF8A8A),
+    cardShadow: Color(0x22000000),
+    headerTitleColor: Color(0xFF17213C),
+    headerSubtitleColor: Color(0xFF687087),
+    sunColor: Color(0xFFFFE27A),
+    cloudColor: Color(0xA3FFFFFF),
+    waveColor: Color(0xBFFFFFFF),
+    aquaWaveColor: Color(0x6671CFC4),
+  );
+
+  // 「夜のHanalog」— 太陽は月に、空は紺〜ティールのグラデーションに。
+  static const dark = _LoginPalette(
+    bgGradient: [Color(0xFF0B1A3A), Color(0xFF14213F), Color(0xFF0F3D3A)],
+    cardColor: Color(0xFF1B2338),
+    cardBorder: Color(0xFF3A4A6B),
+    cardShadow: Color(0x55000000),
+    headerTitleColor: Color(0xFFFFF3D6),
+    headerSubtitleColor: Color(0xFFAAB2CC),
+    sunColor: Color(0xFFF4E9C1),
+    cloudColor: Color(0x1FFFFFFF),
+    waveColor: Color(0x2EFFFFFF),
+    aquaWaveColor: Color(0x4D1F5C55),
+  );
+
+  static _LoginPalette of(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? dark : light;
+  }
+}
+
 // ログイン画面上部のブランドヘッダー。アプリ名とひとことを表示する。
 class _LoginHeader extends StatelessWidget {
-  const _LoginHeader();
+  const _LoginHeader({required this.palette});
+
+  final _LoginPalette palette;
 
   @override
   Widget build(BuildContext context) {
@@ -298,6 +371,7 @@ class _LoginHeader extends StatelessWidget {
           width: 92,
           height: 92,
           decoration: BoxDecoration(
+            // ロゴタイルは視認性優先で常に明るいクリーム色のまま。
             color: const Color(0xFFFFF9E6),
             borderRadius: BorderRadius.circular(26),
             boxShadow: const [
@@ -319,7 +393,7 @@ class _LoginHeader extends StatelessWidget {
         Text(
           'Hanalog',
           style: theme.textTheme.headlineMedium?.copyWith(
-            color: const Color(0xFF17213C),
+            color: palette.headerTitleColor,
             fontSize: 32,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.2,
@@ -329,7 +403,7 @@ class _LoginHeader extends StatelessWidget {
         Text(
           'みんなの「今」をシェアしよう！',
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF687087),
+            color: palette.headerSubtitleColor,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -339,25 +413,31 @@ class _LoginHeader extends StatelessWidget {
 }
 
 class _TropicalBackground extends StatelessWidget {
-  const _TropicalBackground();
+  const _TropicalBackground({required this.palette});
+
+  final _LoginPalette palette;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(painter: _TropicalBackgroundPainter());
+    return CustomPaint(painter: _TropicalBackgroundPainter(palette));
   }
 }
 
 class _TropicalBackgroundPainter extends CustomPainter {
+  _TropicalBackgroundPainter(this.palette);
+
+  final _LoginPalette palette;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final sunPaint = Paint()..color = const Color(0xFFFFE27A);
+    final sunPaint = Paint()..color = palette.sunColor;
     canvas.drawCircle(
       Offset(size.width * .84, size.height * .13),
       42,
       sunPaint,
     );
 
-    final cloudPaint = Paint()..color = Colors.white.withValues(alpha: .62);
+    final cloudPaint = Paint()..color = palette.cloudColor;
     canvas.drawCircle(
       Offset(size.width * .12, size.height * .16),
       28,
@@ -375,7 +455,7 @@ class _TropicalBackgroundPainter extends CustomPainter {
     );
 
     final wavePaint = Paint()
-      ..color = const Color(0xBFFFFFFF)
+      ..color = palette.waveColor
       ..style = PaintingStyle.fill;
     final wave = Path()
       ..moveTo(0, size.height * .79)
@@ -396,7 +476,7 @@ class _TropicalBackgroundPainter extends CustomPainter {
       ..close();
     canvas.drawPath(wave, wavePaint);
 
-    final aquaPaint = Paint()..color = const Color(0x6671CFC4);
+    final aquaPaint = Paint()..color = palette.aquaWaveColor;
     final aquaWave = Path()
       ..moveTo(0, size.height * .88)
       ..quadraticBezierTo(
@@ -418,7 +498,8 @@ class _TropicalBackgroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _TropicalBackgroundPainter oldDelegate) =>
+      oldDelegate.palette != palette;
 }
 
 class _FlowerSticker extends StatelessWidget {

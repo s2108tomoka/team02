@@ -255,8 +255,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                      side: BorderSide(color: Theme.of(context).colorScheme.error),
+
                     ),
                     icon: const Icon(Icons.exit_to_app),
                     label: const Text('グループを脱退する'),
@@ -460,6 +461,7 @@ class _EmptyMemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return _CardFrame(
       filled: false,
       child: Stack(
@@ -478,48 +480,26 @@ class _EmptyMemberCard extends StatelessWidget {
             ),
           ),
           Center(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 72),
-              child: Text(
-                'まだ投稿していません',
-                style: TextStyle(
-                  color: const Color(0xFF527878),
-                  fontWeight: FontWeight.w600,
+
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.hourglass_empty,
+                  size: 32,
+                  color: colorScheme.onSurfaceVariant,
                 ),
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  'まだ投稿していません',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                ),
+              ],
             ),
           ),
           _NameOverlay(name: member.name, dark: false),
           _TimeOverlay(label: slotLabel, dark: false),
         ],
-      ),
-    );
-  }
-}
-
-// カードの共通の枠（角丸・16:10・余白）。filled=false は未投稿用の薄い背景。
-class _CardFrame extends StatelessWidget {
-  const _CardFrame({required this.child, this.filled = true});
-
-  final Widget child;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: filled ? Colors.black : const Color(0xFFE9FBF8),
-            border: filled
-                ? null
-                : Border.all(color: const Color(0xFF9FE5E0), width: 1.5),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: AspectRatio(aspectRatio: 16 / 10, child: child),
-        ),
       ),
     );
   }
@@ -534,6 +514,7 @@ class _NameOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Positioned(
       left: 12,
       top: 12,
@@ -544,7 +525,7 @@ class _NameOverlay extends StatelessWidget {
           Text(
             name,
             style: TextStyle(
-              color: dark ? Colors.white : Colors.black87,
+              color: dark ? Colors.white : colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               shadows: dark
                   ? const [Shadow(blurRadius: 6, color: Colors.black54)]
@@ -556,8 +537,41 @@ class _NameOverlay extends StatelessWidget {
     );
   }
 }
+// カードの共通の枠（角丸・16:10・余白）。
+// filled=true: 動画カード。常に黒背景（動画の読み込み待ち/エラー時と統一するため
+// テーマに依存させない＝カメラ画面と同じ考え方）。
+// filled=false: 未投稿プレースホルダー。テーマのsurfaceカラーに追従させる。
+class _CardFrame extends StatelessWidget {
+  const _CardFrame({required this.child, this.filled = true});
+
+  final Widget child;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: filled ? Colors.black : colorScheme.surfaceContainerHighest,
+            border: filled
+                ? null
+                : Border.all(color: colorScheme.outlineVariant, width: 1.5),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: AspectRatio(aspectRatio: 16 / 10, child: child),
+        ),
+      ),
+    );
+  }
+}
 
 // カード中央の時刻ラベル。
+// dark=true: 動画カード上（黒背景固定なので白文字固定でOK）。
+// dark=false: プレースホルダーカード上（テーマに追従）。
 class _TimeOverlay extends StatelessWidget {
   const _TimeOverlay({required this.label, this.dark = true});
 
@@ -566,11 +580,12 @@ class _TimeOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Text(
         label,
         style: TextStyle(
-          color: dark ? Colors.white : Colors.grey[500],
+          color: dark ? Colors.white : colorScheme.onSurfaceVariant,
           fontSize: 28,
           fontWeight: FontWeight.w900,
           shadows: dark

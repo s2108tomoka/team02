@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/analytics.dart';
 import 'core/router.dart';
 import 'core/supabase_client.dart';
+import 'core/theme_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,14 +52,15 @@ class _StartupErrorApp extends StatelessWidget {
 }
 
 // アプリのルートWidget。
-class HanalogApp extends StatefulWidget {
+// themeModeProvider を監視するため ConsumerStatefulWidget にする。
+class HanalogApp extends ConsumerStatefulWidget {
   const HanalogApp({super.key});
 
   @override
-  State<HanalogApp> createState() => _HanalogAppState();
+  ConsumerState<HanalogApp> createState() => _HanalogAppState();
 }
 
-class _HanalogAppState extends State<HanalogApp> {
+class _HanalogAppState extends ConsumerState<HanalogApp> {
   late final AppLifecycleListener _lifecycleListener;
 
   @override
@@ -82,8 +84,11 @@ class _HanalogAppState extends State<HanalogApp> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp.router(
       title: 'Hanalog',
+      themeMode: themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFFFD21F),
@@ -96,6 +101,22 @@ class _HanalogAppState extends State<HanalogApp> {
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFFFF6B8),
           foregroundColor: Color(0xFF17213C),
+          elevation: 0,
+          centerTitle: true,
+        ),
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFFD21F),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+        fontFamily: 'Avenir Next',
+        fontFamilyFallback: const ['Trebuchet MS', 'sans-serif'],
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF121212),
+          foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
         ),
