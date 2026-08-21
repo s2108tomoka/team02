@@ -630,6 +630,15 @@ class _FloatingBottomBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Image.asset(
+              'assets/images/hanalog_turtle_icon.png',
+              width: 30,
+              height: 24,
+              fit: BoxFit.contain,
+            ),
+          ),
           GestureDetector(
             onTap: () => context.push('/camera'),
             child: Container(
@@ -656,6 +665,15 @@ class _FloatingBottomBar extends StatelessWidget {
             child: const Text(
               'ログ',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Image.asset(
+              'assets/images/hanalog_turtle_icon.png',
+              width: 30,
+              height: 24,
+              fit: BoxFit.contain,
             ),
           ),
         ],
