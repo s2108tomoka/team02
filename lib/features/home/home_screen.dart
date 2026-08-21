@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../core/cached_video.dart';
+import '../../core/animated_flower.dart';
 import '../../models/group.dart';
 import '../../models/post.dart';
 import '../auth/auth_provider.dart';
@@ -48,6 +49,7 @@ class HomeScreen extends ConsumerWidget {
                         return const _EmptyState(
                           icon: Icons.videocam_off_outlined,
                           message: 'まだVlogがありません',
+                          animatedFlower: true,
                         );
                       }
                       return _VlogFeed(posts: posts);
@@ -579,10 +581,15 @@ class _FloatingBottomBar extends StatelessWidget {
 
 // 一覧が空のときに表示する共通ウィジェット。
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.icon, required this.message});
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    this.animatedFlower = false,
+  });
 
   final IconData icon;
   final String message;
+  final bool animatedFlower;
 
   @override
   Widget build(BuildContext context) {
@@ -590,7 +597,10 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
         children: [
-          Icon(icon, size: 48, color: Colors.grey[400]),
+          if (animatedFlower)
+            const AnimatedFlower(size: 56, width: double.infinity, height: 120)
+          else
+            Icon(icon, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 8),
           Text(message, style: TextStyle(color: Colors.grey[600])),
         ],
