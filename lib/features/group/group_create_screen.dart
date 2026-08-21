@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../home/home_provider.dart';
 import 'group_provider.dart';
 
 class GroupCreateScreen extends ConsumerStatefulWidget {
@@ -34,6 +35,7 @@ class _GroupCreateScreenState extends ConsumerState<GroupCreateScreen> {
     try {
       final group = await ref.read(groupServiceProvider).createGroup(name);
       if (!mounted) return;
+      ref.invalidate(myGroupsProvider);
       _showMessage('「${group.name}」を作成しました（招待コード: ${group.inviteCode}）');
       context.go('/home');
     } catch (e) {

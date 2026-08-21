@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../home/home_provider.dart';
 import 'group_provider.dart';
 
 class GroupJoinScreen extends ConsumerStatefulWidget {
@@ -34,6 +35,7 @@ class _GroupJoinScreenState extends ConsumerState<GroupJoinScreen> {
     try {
       final group = await ref.read(groupServiceProvider).joinGroup(code);
       if (!mounted) return;
+      ref.invalidate(myGroupsProvider);
       _showMessage('「${group.name}」に参加しました');
       context.go('/home');
     } catch (e) {
