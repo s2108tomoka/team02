@@ -85,8 +85,20 @@ class _HanalogAppState extends State<HanalogApp> {
     return MaterialApp.router(
       title: 'Hanalog',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFFD21F),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
+        fontFamily: 'Avenir Next',
+        fontFamilyFallback: const ['Trebuchet MS', 'sans-serif'],
+        scaffoldBackgroundColor: const Color(0xFFFFF6B8),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFFFF6B8),
+          foregroundColor: Color(0xFF17213C),
+          elevation: 0,
+          centerTitle: true,
+        ),
       ),
       routerConfig: router,
       builder: _wrapInPhoneFrame,

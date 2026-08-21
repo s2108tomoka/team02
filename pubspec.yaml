@@ -69,6 +69,7 @@ flutter:
   # 環境変数ファイル（Supabase URL / anon key）を assets として読み込む
   assets:
     - .env
+    - assets/images/hanalog_hibiscus_icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
